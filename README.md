@@ -34,14 +34,18 @@ npm install
 ```
 
 3. Configure the server:
-Edit `config.json` with your Mattermost API details:
-```json
-{
-  "mattermostUrl": "https://your-mattermost-instance.com/api/v4",
-  "token": "your-personal-access-token",
-  "teamId": "your-team-id"
-}
-```
+   
+   The repository includes a `config.json` file with placeholder values. For your actual configuration, create a `config.local.json` file (which is gitignored) with your real credentials:
+
+   ```json
+   {
+     "mattermostUrl": "https://your-mattermost-instance.com/api/v4",
+     "token": "your-personal-access-token",
+     "teamId": "your-team-id"
+   }
+   ```
+
+   This approach keeps your real credentials out of the repository while maintaining the template for others.
 
 4. Build the server:
 ```bash
