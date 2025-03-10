@@ -14,7 +14,36 @@ export function analyzePost(post: Post, topics: string[]): boolean {
     const topicLower = topic.toLowerCase();
     
     // Check for exact match or as part of a word
-    return message.includes(topicLower);
+    if (message.includes(topicLower)) {
+      return true;
+    }
+    
+    // Special handling for TV series
+    if (topicLower === 'tv series') {
+      // List of popular TV series to check for
+      const tvSeries = [
+        'breaking bad', 'game of thrones', 'stranger things', 'the office',
+        'friends', 'the mandalorian', 'westworld', 'the witcher', 'the crown',
+        'black mirror', 'the walking dead', 'better call saul', 'ozark',
+        'house of cards', 'narcos', 'peaky blinders', 'the boys', 'succession'
+      ];
+      
+      return tvSeries.some(series => message.includes(series));
+    }
+    
+    // Special handling for Champions League
+    if (topicLower === 'champions league') {
+      // List of Champions League teams to check for
+      const teams = [
+        'barcelona', 'real madrid', 'bayern', 'manchester', 'liverpool',
+        'juventus', 'psg', 'chelsea', 'dortmund', 'atletico', 'inter',
+        'milan', 'arsenal', 'benfica', 'porto', 'ajax', 'napoli'
+      ];
+      
+      return teams.some(team => message.includes(team));
+    }
+    
+    return false;
   });
 }
 
@@ -32,19 +61,19 @@ export function findRelevantPosts(posts: Post[], topics: string[]): Post[] {
  * Creates a notification message for relevant posts
  * @param relevantPosts Array of posts that match the topics
  * @param channelName Name of the channel where the posts were found
- * @param userId User ID to mention in the notification
+ * @param username Username to mention in the notification
  * @returns Formatted notification message
  */
 export function createNotificationMessage(
   relevantPosts: Post[],
   channelName: string,
-  userId: string
+  username: string
 ): string {
   if (relevantPosts.length === 0) {
     return '';
   }
   
-  const mention = `<@${userId}>`;
+  const mention = `@${username}`;
   let message = `${mention} I found discussion about topics you're interested in!\n\n`;
   message += `**Channel:** ${channelName}\n\n`;
   

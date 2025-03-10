@@ -21,6 +21,11 @@ import {
   handleGetUsers,
   handleGetUserProfile
 } from "./users.js";
+import {
+  runMonitoringTool,
+  handleRunMonitoring,
+  setTopicMonitorInstance
+} from "./monitoring.js";
 import { MattermostClient } from "../client.js";
 
 // Export all tool definitions
@@ -32,8 +37,12 @@ export const tools: Tool[] = [
   addReactionTool,
   getThreadRepliesTool,
   getUsersTool,
-  getUserProfileTool
+  getUserProfileTool,
+  runMonitoringTool
 ];
+
+// Export the setTopicMonitorInstance function
+export { setTopicMonitorInstance };
 
 // Tool handler map
 export const toolHandlers: Record<string, Function> = {
@@ -44,7 +53,8 @@ export const toolHandlers: Record<string, Function> = {
   mattermost_add_reaction: handleAddReaction,
   mattermost_get_thread_replies: handleGetThreadReplies,
   mattermost_get_users: handleGetUsers,
-  mattermost_get_user_profile: handleGetUserProfile
+  mattermost_get_user_profile: handleGetUserProfile,
+  mattermost_run_monitoring: handleRunMonitoring
 };
 
 // Execute a tool with the given name and arguments

@@ -24,6 +24,9 @@ The server includes a topic monitoring system that can:
 - `mattermost_add_reaction`: Add an emoji reaction to a message
 - `mattermost_get_thread_replies`: Get all replies in a thread
 
+### Monitoring Tools
+- `mattermost_run_monitoring`: Trigger the topic monitoring process immediately
+
 ### User Tools
 - `mattermost_get_users`: Get a list of users in the workspace
 - `mattermost_get_user_profile`: Get detailed profile information for a user
@@ -85,6 +88,43 @@ The monitoring system can be configured with the following options:
 - `userId` (string, optional): Your user ID for mentions in notifications. If not provided, the system will automatically detect the current user.
 
 To enable monitoring, set `enabled` to `true` in your `config.local.json` file.
+
+### Running Monitoring Manually
+
+You can trigger the monitoring process manually in several ways:
+
+1. **Using the provided scripts**:
+   - `./run-monitoring-http.sh` - Triggers monitoring via HTTP without restarting the server (recommended)
+   - `./run-monitoring.sh` - Starts a new server instance with monitoring enabled
+   - `./trigger-monitoring.sh` - Runs the monitoring process and exits (useful for cron jobs)
+   - `./view-channel-messages.js <channel-name> [count]` - View the last messages in a channel
+   - `./analyze-channel.js <channel-name> [count]` - Analyze message statistics in a channel
+   - `./get-last-message.js <channel-name>` - Get the last message from a channel
+
+2. **Using the command-line interface (CLI)**:
+   - While the server is running, simply type one of these commands in the terminal:
+     - `run` - Run the monitoring process
+     - `monitor` - Same as `run`
+     - `check` - Same as `run`
+   - Other available commands:
+     - `help` - Show available commands
+     - `exit` - Shutdown the server
+
+3. **Using the MCP tool**:
+   - Use the `mattermost_run_monitoring` tool through the MCP interface
+   - This will immediately check all configured channels for your topics of interest
+
+4. **Using the command-line flags**:
+   - Start the server with the `--run-monitoring` flag:
+   ```bash
+   npm start -- --run-monitoring
+   ```
+   - This will run the monitoring process immediately after the server starts
+   - Add `--exit-after-monitoring` to exit after the monitoring process completes:
+   ```bash
+   npm start -- --run-monitoring --exit-after-monitoring
+   ```
+   - This is useful for running the monitoring process from cron jobs
 
 ## Tool Details
 
@@ -176,6 +216,100 @@ If you encounter permission errors, verify that:
 1. Your personal access token has the necessary permissions
 2. The token is correctly copied to your configuration
 3. The Mattermost URL and team ID are correct
+
+## HTTP Endpoints
+
+The server exposes HTTP endpoints for remote control:
+
+- **Run Monitoring**: `http://localhost:3456/run-monitoring`
+  - Triggers the monitoring process immediately
+  - Returns JSON response with success/error information
+
+- **Check Status**: `http://localhost:3456/status`
+  - Returns information about the server and monitoring status
+  - Useful for health checks
+
+You can use these endpoints with curl or any HTTP client:
+```bash
+# Trigger monitoring
+curl http://localhost:3456/run-monitoring
+
+# Check status
+curl http://localhost:3456/status
+```
+
+## Utility Scripts
+
+### run-monitoring-http.sh
+
+This script triggers the monitoring process via the HTTP endpoint:
+```bash
+./run-monitoring-http.sh
+```
+
+This is the recommended way to trigger monitoring manually as it:
+- Doesn't restart the server
+- Doesn't interfere with the scheduled monitoring
+- Works reliably from any terminal
+
+### view-channel-messages.js
+
+This script allows you to view the most recent messages in any channel:
+
+```bash
+# View messages in a channel (channel name is required)
+node view-channel-messages.js <channel-name>
+
+# View a specific number of messages
+node view-channel-messages.js <channel-name> <message-count>
+
+# Example: View the last 10 messages in a channel
+node view-channel-messages.js general 10
+```
+
+The script will display:
+- Channel information (name, purpose, total message count)
+- The most recent messages with timestamps and usernames
+- If the channel doesn't exist, it will list all available channels
+
+### analyze-channel.js
+
+This script provides detailed statistics about messages in a channel:
+
+```bash
+# Analyze messages in a channel (channel name is required)
+node analyze-channel.js <channel-name>
+
+# Analyze a specific number of messages
+node analyze-channel.js <channel-name> <message-count>
+
+# Example: Analyze the last 50 messages in a channel
+node analyze-channel.js general 50
+```
+
+The script will display:
+- Channel information and metadata
+- Total message count (including system messages)
+- Breakdown of user messages vs. system messages
+- Message count by user
+- The most recent messages in the channel
+
+### get-last-message.js
+
+This script retrieves only the most recent message from a channel:
+
+```bash
+# Get the last message from a channel (channel name is required)
+node get-last-message.js <channel-name>
+
+# Example: Get the last message from the general channel
+node get-last-message.js general
+```
+
+The script will display:
+- The sender's user ID and username
+- The timestamp of the message
+- The full message content
 
 ## License
 

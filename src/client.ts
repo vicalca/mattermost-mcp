@@ -32,26 +32,40 @@ export class MattermostClient {
     url.searchParams.append('page', page.toString());
     url.searchParams.append('per_page', limit.toString());
     
-    const response = await fetch(url.toString(), { headers: this.headers });
+    console.error(`Fetching channels from URL: ${url.toString()}`);
+    console.error(`Using headers: ${JSON.stringify(this.headers)}`);
     
-    if (!response.ok) {
-      throw new Error(`Failed to get channels: ${response.status} ${response.statusText}`);
+    try {
+      const response = await fetch(url.toString(), { headers: this.headers });
+      
+      console.error(`Response status: ${response.status} ${response.statusText}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Error response body: ${errorText}`);
+        throw new Error(`Failed to get channels: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+      
+      // The API returns an array of channels, but our ChannelsResponse type expects an object
+      // with a channels property, so we need to transform the response
+      const channelsArray = await response.json();
+      
+      console.error(`Response data type: ${typeof channelsArray}, isArray: ${Array.isArray(channelsArray)}`);
+      
+      // Check if the response is an array (as expected from the API)
+      if (Array.isArray(channelsArray)) {
+        return {
+          channels: channelsArray,
+          total_count: channelsArray.length
+        };
+      }
+      
+      // If it's already in the expected format, return it as is
+      return channelsArray as ChannelsResponse;
+    } catch (error) {
+      console.error(`Error fetching channels: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
     }
-    
-    // The API returns an array of channels, but our ChannelsResponse type expects an object
-    // with a channels property, so we need to transform the response
-    const channelsArray = await response.json();
-    
-    // Check if the response is an array (as expected from the API)
-    if (Array.isArray(channelsArray)) {
-      return {
-        channels: channelsArray,
-        total_count: channelsArray.length
-      };
-    }
-    
-    // If it's already in the expected format, return it as is
-    return channelsArray as ChannelsResponse;
   }
 
   async getChannel(channelId: string): Promise<Channel> {
@@ -168,5 +182,23 @@ export class MattermostClient {
     }
     
     return response.json() as Promise<UserProfile>;
+  }
+  
+  // Direct message channel methods
+  async createDirectMessageChannel(userId: string): Promise<Channel> {
+    const url = `${this.baseUrl}/channels/direct`;
+    const body = [userId];
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(body)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to create direct message channel: ${response.status} ${response.statusText}`);
+    }
+    
+    return response.json() as Promise<Channel>;
   }
 }

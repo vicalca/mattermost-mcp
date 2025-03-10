@@ -6,14 +6,16 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { tools, executeTool } from "./tools/index.js";
+import { tools, executeTool, setTopicMonitorInstance } from "./tools/index.js";
 import { MattermostClient } from "./client.js";
 import { loadConfig } from "./config.js";
 import { TopicMonitor } from "./monitor/index.js";
+import * as http from 'http';
 
 async function main() {
   // Check for command-line arguments
   const runMonitoringImmediately = process.argv.includes('--run-monitoring');
+  const exitAfterMonitoring = process.argv.includes('--exit-after-monitoring');
   
   console.error("Starting Mattermost MCP Server...");
   
@@ -36,6 +38,8 @@ async function main() {
     try {
       console.error("Initializing topic monitor...");
       topicMonitor = new TopicMonitor(client, config.monitoring);
+      // Set the TopicMonitor instance in the monitoring tool
+      setTopicMonitorInstance(topicMonitor);
       await topicMonitor.start();
       console.error("Topic monitor started successfully");
     } catch (error) {
@@ -105,10 +109,130 @@ async function main() {
     console.error("Running monitoring immediately as requested...");
     try {
       await topicMonitor.runNow();
+      
+      // Exit after monitoring if requested
+      if (exitAfterMonitoring) {
+        console.error("Exiting after monitoring as requested...");
+        process.exit(0);
+      }
     } catch (error) {
       console.error("Error running monitoring immediately:", error);
+      
+      // Exit with error code if exit-after-monitoring is set
+      if (exitAfterMonitoring) {
+        console.error("Exiting with error...");
+        process.exit(1);
+      }
     }
   }
+  
+  // Set up command-line interface
+  process.stdin.setEncoding('utf8');
+  console.error("Setting up command-line interface...");
+  
+  process.stdin.on('data', async (data) => {
+    console.error(`Received input: "${data.toString().trim()}"`);
+    const input = data.toString().trim().toLowerCase();
+    
+    if (input === 'run' || input === 'monitor' || input === 'check') {
+      console.error("Command received: Running monitoring process...");
+      if (topicMonitor) {
+        try {
+          console.error("Calling topicMonitor.runNow()...");
+          await topicMonitor.runNow();
+          console.error("Monitoring process completed successfully");
+        } catch (error) {
+          console.error("Error running monitoring process:", error);
+        }
+      } else {
+        console.error("Monitoring is not enabled or initialized");
+      }
+    } else if (input === 'help') {
+      console.error("Available commands:");
+      console.error("  run, monitor, check - Run the monitoring process immediately");
+      console.error("  help - Show this help message");
+      console.error("  exit - Shutdown the server");
+    } else if (input === 'exit' || input === 'quit') {
+      console.error("Shutting down server...");
+      process.exit(0);
+    } else {
+      console.error("Unknown command. Type 'help' for available commands");
+    }
+  });
+  
+  // Resume stdin to capture input
+  process.stdin.resume();
+  
+  console.error("Command interface ready. Type 'run' to trigger monitoring, 'help' for more commands");
+  
+  // Set up HTTP server for remote triggering of monitoring
+  const httpPort = 3456; // Choose a port that's likely to be available
+  const httpServer = http.createServer(async (req, res) => {
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+    
+    // Only respond to specific paths
+    if (req.url === '/run-monitoring') {
+      console.error("Received HTTP request to run monitoring");
+      
+      if (topicMonitor) {
+        try {
+          console.error("Running monitoring via HTTP request...");
+          await topicMonitor.runNow();
+          console.error("Monitoring completed successfully");
+          
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, message: 'Monitoring completed successfully' }));
+        } catch (error) {
+          console.error("Error running monitoring:", error);
+          
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            success: false, 
+            error: error instanceof Error ? error.message : String(error) 
+          }));
+        }
+      } else {
+        console.error("Monitoring is not enabled or initialized");
+        
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: 'Monitoring is not enabled or initialized' 
+        }));
+      }
+    } else if (req.url === '/status') {
+      // Status endpoint
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        status: 'running',
+        monitoring: {
+          enabled: !!topicMonitor,
+          running: topicMonitor ? topicMonitor.isRunning() : false
+        }
+      }));
+    } else {
+      // Not found
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Not found' }));
+    }
+  });
+  
+  // Start the HTTP server
+  httpServer.listen(httpPort, () => {
+    console.error(`HTTP server listening on port ${httpPort}`);
+    console.error(`To trigger monitoring, visit http://localhost:${httpPort}/run-monitoring`);
+    console.error(`To check status, visit http://localhost:${httpPort}/status`);
+  });
   
   // Handle process termination
   process.on('SIGINT', () => {
