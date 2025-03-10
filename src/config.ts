@@ -6,10 +6,21 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+export interface MonitoringConfig {
+  enabled: boolean;
+  schedule: string;  // Cron format
+  channels: string[];  // Channel names to monitor
+  topics: string[];  // Topics to look for
+  messageLimit: number;  // Number of recent messages to analyze per check
+  notificationChannelId?: string;  // Where to send notifications (optional, will use DM if not provided)
+  userId?: string;  // User ID for mentions (optional, will be auto-detected if not provided)
+}
+
 export interface Config {
   mattermostUrl: string;
   token: string;
   teamId: string;
+  monitoring?: MonitoringConfig;
 }
 
 export function loadConfig(): Config {
@@ -51,5 +62,19 @@ function validateConfig(config: Config): void {
   }
   if (!config.teamId) {
     throw new Error('Missing teamId in configuration');
+  }
+  
+  // Validate monitoring config if enabled
+  if (config.monitoring?.enabled) {
+    if (!config.monitoring.schedule) {
+      throw new Error('Missing schedule in monitoring configuration');
+    }
+    if (!config.monitoring.channels || config.monitoring.channels.length === 0) {
+      throw new Error('No channels specified in monitoring configuration');
+    }
+    if (!config.monitoring.topics || config.monitoring.topics.length === 0) {
+      throw new Error('No topics specified in monitoring configuration');
+    }
+    // userId and notificationChannelId are now optional
   }
 }

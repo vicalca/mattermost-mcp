@@ -1,5 +1,12 @@
 {
   "mattermostUrl": "https://your-mattermost-instance.com/api/v4",
   "token": "your-mattermost-token",
-  "teamId": "your-team-id"
+  "teamId": "your-team-id",
+  "monitoring": {
+    "enabled": false,
+    "schedule": "*/15 * * * *",
+    "channels": ["town-square", "off-topic"],
+    "topics": ["tv series", "champions league"],
+    "messageLimit": 50
+  }
 }

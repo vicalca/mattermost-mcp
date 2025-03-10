@@ -8,9 +8,17 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { tools, executeTool } from "./tools/index.js";
 import { MattermostClient } from "./client.js";
+import { loadConfig } from "./config.js";
+import { TopicMonitor } from "./monitor/index.js";
 
 async function main() {
+  // Check for command-line arguments
+  const runMonitoringImmediately = process.argv.includes('--run-monitoring');
+  
   console.error("Starting Mattermost MCP Server...");
+  
+  // Load configuration
+  const config = loadConfig();
   
   // Initialize Mattermost client
   let client: MattermostClient;
@@ -20,6 +28,22 @@ async function main() {
   } catch (error) {
     console.error("Failed to initialize Mattermost client:", error);
     process.exit(1);
+  }
+  
+  // Initialize and start topic monitor if enabled
+  let topicMonitor: TopicMonitor | null = null;
+  if (config.monitoring?.enabled) {
+    try {
+      console.error("Initializing topic monitor...");
+      topicMonitor = new TopicMonitor(client, config.monitoring);
+      await topicMonitor.start();
+      console.error("Topic monitor started successfully");
+    } catch (error) {
+      console.error("Failed to initialize topic monitor:", error);
+      // Continue without monitoring
+    }
+  } else {
+    console.error("Topic monitoring is disabled in configuration");
   }
   
   // Initialize MCP server
@@ -75,6 +99,25 @@ async function main() {
   await server.connect(transport);
 
   console.error("Mattermost MCP Server running on stdio");
+  
+  // Run monitoring immediately if requested
+  if (runMonitoringImmediately && topicMonitor) {
+    console.error("Running monitoring immediately as requested...");
+    try {
+      await topicMonitor.runNow();
+    } catch (error) {
+      console.error("Error running monitoring immediately:", error);
+    }
+  }
+  
+  // Handle process termination
+  process.on('SIGINT', () => {
+    console.error("Shutting down Mattermost MCP Server...");
+    if (topicMonitor) {
+      topicMonitor.stop();
+    }
+    process.exit(0);
+  });
 }
 
 main().catch((error) => {

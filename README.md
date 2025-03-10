@@ -6,6 +6,14 @@ MCP Server for the Mattermost API, enabling Claude and other MCP clients to inte
 
 This MCP server provides tools for interacting with Mattermost, including:
 
+### Topic Monitoring
+
+The server includes a topic monitoring system that can:
+- Monitor specified channels for messages containing topics of interest
+- Run on a configurable schedule (using cron syntax)
+- Send notifications when relevant topics are discussed
+- Mention you in a specified channel when topics are found
+
 ### Channel Tools
 - `mattermost_list_channels`: List public channels in the workspace
 - `mattermost_get_channel_history`: Get recent messages from a channel
@@ -41,7 +49,14 @@ npm install
    {
      "mattermostUrl": "https://your-mattermost-instance.com/api/v4",
      "token": "your-personal-access-token",
-     "teamId": "your-team-id"
+     "teamId": "your-team-id",
+     "monitoring": {
+       "enabled": false,
+       "schedule": "*/15 * * * *",
+       "channels": ["town-square", "off-topic"],
+       "topics": ["tv series", "champions league"],
+       "messageLimit": 50
+     }
    }
    ```
 
@@ -56,6 +71,20 @@ npm run build
 ```bash
 npm start
 ```
+
+## Topic Monitoring Configuration
+
+The monitoring system can be configured with the following options:
+
+- `enabled` (boolean): Whether monitoring is enabled
+- `schedule` (string): Cron expression for when to check for new messages (e.g., "*/15 * * * *" for every 15 minutes)
+- `channels` (string[]): Array of channel names to monitor
+- `topics` (string[]): Array of topics to look for in messages
+- `messageLimit` (number): Number of recent messages to analyze per check
+- `notificationChannelId` (string, optional): Channel ID where notifications will be sent. If not provided, the system will automatically use a direct message channel.
+- `userId` (string, optional): Your user ID for mentions in notifications. If not provided, the system will automatically detect the current user.
+
+To enable monitoring, set `enabled` to `true` in your `config.local.json` file.
 
 ## Tool Details
 
