@@ -1,0 +1,5 @@
+{
+  "mattermostUrl": "https://your-mattermost-instance.com/api/v4",
+  "token": "your-mattermost-token",
+  "teamId": "your-team-id"
+}
