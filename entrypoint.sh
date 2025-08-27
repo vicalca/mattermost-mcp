@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # The script will read the following environment variables and update the JSON configuration accordingly:
 # - MATTERMOST_URL: The URL for the Mattermost API.
@@ -69,4 +69,4 @@ echo "Configuration update complete."
 
 echo "Running server with updated configuration..."
 
-npm run start
+supergateway --stdio "npm run start" --port 8001

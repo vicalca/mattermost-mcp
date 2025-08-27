@@ -4,6 +4,8 @@ WORKDIR /server
 
 COPY . /server
 
-RUN npm install && npm run build
+RUN npm install -g supergateway && npm install && npm run build
+
+EXPOSE 8001
 
 ENTRYPOINT [ "./entrypoint.sh" ]
